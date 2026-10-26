@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="덱 랩">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>포켓몬 카드 덱 랩</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: workbench — deck list rail on the left, analysis tabs on the right; stacks on phones */
+:root{
+  --bg:#edf0f4; --surface:#ffffff; --sunk:#f5f7fa; --ink:#18202b; --muted:#5a6575; --line:#d6dce4;
+  --accent:#2b54c9; --accent-ink:#ffffff; --spark:#e9a800; --spark-soft:#fdf1cc;
+  --good:#1d7f47; --warn:#a86a0a; --bad:#bf3434; --good-soft:#e2f3e9; --bad-soft:#f9e3e3; --warn-soft:#fbefd9;
+  --f-display:"Do Hyeon","IBM Plex Sans KR",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10141a; --surface:#181e27; --sunk:#141920; --ink:#e6eaf0; --muted:#98a3b3; --line:#2a3340;
+  --accent:#7d9bff; --accent-ink:#0d1320; --spark:#f3c443; --spark-soft:#3a3014;
+  --good:#5cc98a; --warn:#e2a948; --bad:#f07a7a; --good-soft:#163222; --bad-soft:#3a1c1c; --warn-soft:#382a12;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10141a; --surface:#181e27; --sunk:#141920; --ink:#e6eaf0; --muted:#98a3b3; --line:#2a3340;
+  --accent:#7d9bff; --accent-ink:#0d1320; --spark:#f3c443; --spark-soft:#3a3014;
+  --good:#5cc98a; --warn:#e2a948; --bad:#f07a7a; --good-soft:#163222; --bad-soft:#3a1c1c; --warn-soft:#382a12;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;margin-bottom:18px}
+h1{font-family:var(--f-display);font-weight:400;font-size:34px;line-height:1.05;margin:0;letter-spacing:.5px;text-wrap:balance}
+h1 .ball{display:inline-block;width:22px;height:22px;border-radius:50%;vertical-align:2px;margin-right:10px;background:linear-gradient(var(--bad) 0 46%,var(--ink) 46% 54%,var(--surface) 54%);border:2px solid var(--ink)}
+.sub{color:var(--muted);margin:4px 0 0}
+h2{font-family:var(--f-display);font-weight:400;font-size:22px;margin:0;text-wrap:balance}
+h3{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0}
+.app{display:grid;grid-template-columns:minmax(0,410px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:920px){.app{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.panel-h{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.panel-b{padding:14px 16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--sunk);border-radius:7px;padding:6px 12px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.primary:disabled{opacity:.55;cursor:wait}
+.btn.sm{padding:3px 9px;font-size:12.5px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:6px 12px;font-weight:500;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+input[type=text],input[type=number],select,textarea{background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:5px 8px;min-width:0}
+input[type=number]{width:100%;font-family:var(--f-mono)}
+textarea{width:100%;font-family:var(--f-mono);font-size:12.5px;min-height:170px;resize:vertical}
+.deckname{flex:1;min-width:120px;font-weight:600}
+.count-badge{font-family:var(--f-mono);font-weight:600;font-size:15px;padding:2px 10px;border-radius:999px;background:var(--good-soft);color:var(--good)}
+.count-badge.off{background:var(--bad-soft);color:var(--bad)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--sunk);border:1px solid var(--line);color:var(--muted)}
+.chip.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.chip.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.chip.ok{background:var(--good-soft);color:var(--good);border-color:transparent}
+.group h3{display:flex;justify-content:space-between;margin-bottom:4px}
+.group h3 span{font-family:var(--f-mono);letter-spacing:0}
+.rows{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:4px 0;border-top:1px dashed var(--line)}
+.row:first-child{border-top:0}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.stepper button{border:0;background:var(--sunk);width:24px;height:26px;font-weight:600;color:var(--muted)}
+.stepper button:hover{color:var(--ink)}
+.stepper b{min-width:24px;text-align:center;font-family:var(--f-mono);font-weight:600}
+.cname{display:flex;align-items:center;gap:6px;min-width:0;border:0;background:none;text-align:left;padding:2px 0}
+.cname span.n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cname:hover span.n{text-decoration:underline;text-underline-offset:3px}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.2)}
+.tag{font-size:10.5px;font-weight:700;padding:0 5px;border-radius:4px;background:var(--sunk);border:1px solid var(--line);color:var(--muted);flex:none}
+.tag.ex{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.tag.unk{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.tag.ace{background:var(--spark-soft);color:var(--warn);border-color:transparent}
+.rtools{display:flex;gap:4px}
+.icon-btn{border:1px solid transparent;background:none;border-radius:5px;padding:2px 6px;color:var(--muted);font-size:12px}
+.icon-btn:hover{border-color:var(--line);color:var(--ink)}
+.icon-btn[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+.editor{grid-column:1/-1;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px 10px}
+.editor label{display:flex;flex-direction:column;gap:2px;font-size:11.5px;color:var(--muted);min-width:0}
+.editor label.wide{grid-column:1/-1}
+.editor .hint{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.addrow{display:flex;gap:8px}
+.addrow input{flex:1}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;padding:8px 10px 0;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:none;padding:8px 14px 10px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--spark)}
+.controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end}
+.controls label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.controls input[type=number]{width:96px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kpi .v{font-family:var(--f-mono);font-size:26px;font-weight:600;line-height:1.1}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi.hl{border-color:var(--spark);background:var(--spark-soft)}
+.bars{display:flex;flex-direction:column;gap:6px}
+.bar{display:grid;grid-template-columns:72px 1fr 120px;gap:10px;align-items:center;font-size:13px}
+.bar .track{height:18px;background:var(--sunk);border-radius:4px;position:relative;overflow:hidden;border:1px solid var(--line)}
+.bar .fill{position:absolute;inset:0 auto 0 0;background:var(--spark)}
+.bar .cum{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.55}
+.bar .num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
+.bar .num b{color:var(--ink);font-weight:600}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11.5px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.vs{display:flex;height:42px;border-radius:8px;overflow:hidden;border:1px solid var(--line);font-family:var(--f-mono);font-weight:600}
+.vs div{display:flex;align-items:center;padding:0 12px;white-space:nowrap;min-width:0}
+.vs .a{background:var(--accent);color:var(--accent-ink)}
+.vs .b{background:var(--sunk);justify-content:flex-end;flex:1}
+.vs-l{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:4px;gap:10px}
+.progress{height:6px;background:var(--sunk);border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+.progress div{height:100%;background:var(--accent);width:0;transition:width .2s}
+.log{font-family:var(--f-mono);font-size:12px;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:10px 12px;max-height:340px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.log .t{color:var(--accent);font-weight:600}
+.log .ko{color:var(--bad);font-weight:600}
+.note{font-size:12.5px;color:var(--muted);background:var(--sunk);border-left:3px solid var(--spark);padding:8px 12px;border-radius:0 6px 6px 0}
+.note ul{margin:4px 0 0;padding-left:18px}
+.diff{display:flex;flex-wrap:wrap;gap:6px}
+.diff .plus{background:var(--good-soft);color:var(--good)}
+.diff .minus{background:var(--bad-soft);color:var(--bad)}
+.cands{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px}
+.cands label{display:flex;gap:5px;align-items:center}
+.muted{color:var(--muted)}
+.empty{color:var(--muted);font-size:13px;padding:14px;border:1px dashed var(--line);border-radius:8px;text-align:center}
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.split>*{min-width:0}
+@media (prefers-reduced-motion:reduce){.progress div{transition:none}}
+/* Photo scan */
+.scan{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px dashed var(--line);border-radius:10px;background:var(--sunk)}
+.scan-actions{display:flex;flex-wrap:wrap;gap:8px}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px}
+.thumbs figure{margin:0;position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}
+.thumbs img{width:100%;height:100%;object-fit:cover}
+.thumbs button{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:var(--ink);color:var(--surface);font-size:12px;line-height:1}
+.scan-status{font-size:13px;color:var(--muted);margin:0}
+.scan-status.err{color:var(--bad)}
+.scan-status.ok{color:var(--good)}
+.keyrow{display:flex;gap:8px;flex-wrap:wrap}
+.keyrow input{flex:1;min-width:180px;font-family:var(--f-mono)}
+/* Touch devices (iPad): larger hit targets */
+@media (pointer:coarse){
+  .btn{padding:9px 14px}
+  .btn.sm{padding:6px 11px}
+  .stepper button{width:38px;height:38px;font-size:17px}
+  .stepper b{min-width:30px;font-size:15px}
+  .icon-btn{padding:8px 10px;font-size:14px}
+  .row{padding:6px 0}
+  .tabs button{padding:12px 16px 14px;font-size:15px}
+  .seg button{padding:9px 14px}
+  input[type=text],input[type=number],input[type=password],select,textarea{font-size:16px;padding:8px 10px}
+  .cands label{padding:4px 0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1><span class="ball" aria-hidden="true"></span>포켓몬 카드 덱 랩</h1>
+      <p class="sub">60장 덱의 전개 속도를 시뮬레이션하고, 장수를 자동으로 조정하고, 두 덱을 수천 판 붙여 봅니다.</p>
+    </div>
+    <button class="btn sm" id="resetBtn" type="button">예시 덱으로 초기화</button>
+  </header>
+
+  <div class="app">
+    <!-- Deck rail -->
+    <section class="panel" aria-label="덱 편집">
+      <div class="panel-h">
+        <div class="seg" role="group" aria-label="편집할 덱">
+          <button type="button" data-deck="A" id="segA">내 덱</button>
+          <button type="button" data-deck="B" id="segB">상대 덱</button>
+        </div>
+        <input type="text" class="deckname" id="deckName" aria-label="덱 이름">
+        <span class="count-badge" id="countBadge">60/60</span>
+      </div>
+      <div class="panel-b">
+        <div class="chips" id="valid"></div>
+        <div id="deckList"></div>
+        <div class="addrow">
+          <input type="text" id="addName" list="libList" placeholder="카드 이름 (예: 네스트볼, 리자몽 ex)">
+          <button class="btn" type="button" id="addBtn">추가</button>
+        </div>
+        <datalist id="libList"></datalist>
+        <div class="scan" id="scanBox">
+          <h3>사진으로 덱 등록</h3>
+          <div class="scan-actions">
+            <label class="btn primary" for="scanFile" style="cursor:pointer">📷 촬영 / 사진 선택</label>
+            <input type="file" id="scanFile" accept="image/*" multiple hidden>
+            <button class="btn" type="button" id="scanRun" disabled>카드 인식</button>
+          </div>
+          <div class="thumbs" id="scanThumbs"></div>
+          <p class="scan-status" id="scanStatus">카드를 겹치지 않게 펼쳐 찍거나 덱 리스트 화면을 캡처하세요. 여러 장도 됩니다. 인식 결과는 아래 텍스트 칸에 들어가며, 확인한 뒤 “이 텍스트로 덱 교체”를 누르면 적용됩니다.</p>
+          <details id="keyBox">
+            <summary class="muted" style="cursor:pointer">Anthropic API 키 설정</summary>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+              <div class="keyrow">
+                <input type="password" id="apiKey" autocomplete="off" placeholder="sk-ant-..." aria-label="Anthropic API 키">
+                <button class="btn" type="button" id="keySave">저장</button>
+                <button class="btn" type="button" id="keyClear">지우기</button>
+              </div>
+              <p class="muted" style="margin:0;font-size:12px">키는 이 기기의 브라우저에만 저장되고 Anthropic API로만 전송됩니다. 다른 사람과 같이 쓰는 기기라면 사용 후 지우세요. 키는 console.anthropic.com에서 발급합니다.</p>
+            </div>
+          </details>
+        </div>
+        <details id="ioBox">
+          <summary class="muted" style="cursor:pointer">덱 리스트 가져오기 / 내보내기</summary>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            <textarea id="ioText" aria-label="덱 리스트 텍스트" placeholder="파이리 4&#10;리자몽 ex 3장&#10;4 하이퍼볼&#10;..."></textarea>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn" type="button" id="importBtn">이 텍스트로 덱 교체</button>
+              <button class="btn" type="button" id="exportBtn">현재 덱을 텍스트로</button>
+              <button class="btn" type="button" id="copyBtn">복사</button>
+            </div>
+            <p class="muted" style="margin:0;font-size:12px">한 줄에 한 카드씩 “리자몽 ex 3장”, “4 하이퍼볼” 형식으로 적으세요. 띄어쓰기는 무시하며, 영문 PTCGL 리스트(“4 Charmander PAF 7”)도 한글 이름으로 바꿔 읽습니다. 모르는 카드는 <span class="tag unk">미등록</span>으로 표시되니 이름을 눌러 역할을 지정하세요.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- Analysis -->
+    <section class="panel" aria-label="분석">
+      <div class="tabs" role="tablist">
+        <button role="tab" type="button" data-tab="gold" id="tab-gold">전개 시뮬레이션</button>
+        <button role="tab" type="button" data-tab="opt" id="tab-opt">덱 최적화</button>
+        <button role="tab" type="button" data-tab="battle" id="tab-battle">대전 시뮬레이션</button>
+      </div>
+
+      <!-- Goldfish -->
+      <div class="panel-b" data-pane="gold">
+        <p class="muted" style="margin:0">상대 없이 혼자 전개해서(골드피시) <b>몇 번째 내 턴에 목표 데미지로 공격할 수 있는지</b> 측정합니다. 대상은 <b id="goldDeckLabel">내 덱</b>입니다.</p>
+        <div class="controls">
+          <label>게임 수<select id="gN"><option>2000</option><option selected>5000</option><option>10000</option></select></label>
+          <label>선후공<select id="gFirst"><option value="r">랜덤</option><option value="1">선공</option><option value="0">후공</option></select></label>
+          <label>목표 데미지<input type="number" id="gThr" min="10" step="10" placeholder="자동"></label>
+          <button class="btn primary" type="button" id="gRun">시뮬레이션 실행</button>
+        </div>
+        <div id="gOut"></div>
+      </div>
+
+      <!-- Optimizer -->
+      <div class="panel-b" data-pane="opt" hidden>
+        <p class="muted" style="margin:0">카드 1장을 빼고 다른 카드 1장을 넣는 교체를 반복하며 목표 점수가 오르는 구성을 찾습니다. 🔒 잠금한 카드는 장수를 바꾸지 않습니다.</p>
+        <div class="controls">
+          <label>목표<select id="oObj">
+            <option value="g2">2턴 이내 공격 준비 확률</option>
+            <option value="g3" selected>3턴 이내 공격 준비 확률</option>
+            <option value="win">상대 덱 상대 승률</option>
+          </select></label>
+          <label>반복 횟수<select id="oIt"><option>10</option><option selected>20</option><option>40</option></select></label>
+          <button class="btn primary" type="button" id="oRun">최적화 시작</button>
+          <button class="btn" type="button" id="oStop" hidden>중지</button>
+        </div>
+        <div>
+          <h3 style="margin-bottom:6px">넣어 볼 수 있는 후보 카드</h3>
+          <div class="cands" id="oCands"></div>
+        </div>
+        <div class="progress" aria-hidden="true"><div id="oProg"></div></div>
+        <div id="oOut"></div>
+      </div>
+
+      <!-- Battle -->
+      <div class="panel-b" data-pane="battle" hidden>
+        <p class="muted" style="margin:0">두 덱을 같은 규칙의 자동 플레이로 붙입니다. 선공은 매 판 무작위입니다.</p>
+        <div class="controls">
+          <label>게임 수<select id="bN"><option>200</option><option selected>1000</option><option>3000</option></select></label>
+          <button class="btn primary" type="button" id="bRun">대전 실행</button>
+          <button class="btn" type="button" id="bSample">샘플 게임 1판 보기</button>
+        </div>
+        <div class="progress" aria-hidden="true"><div id="bProg"></div></div>
+        <div id="bOut"></div>
+        <div id="bLog"></div>
+      </div>
+
+      <div class="panel-b" style="border-top:1px solid var(--line)">
+        <div class="note"><b>시뮬레이션 모델</b> — 카드 원문 대신 카드마다 지정한 역할로 플레이합니다.
+          <ul>
+            <li>에너지는 타입 구분 없이 장수만 셉니다. 기술은 카드당 하나(가장 강한 것)만 씁니다.</li>
+            <li>자동 플레이는 서치 → 진화 → 서포트 → 에너지 → 교체 → 보스 → 공격 순의 정해진 판단을 따릅니다. 실제 숙련자보다 단순합니다.</li>
+            <li>특수 상태, 도구·스타디움 효과, 회복, 상대 특성 방해는 반영하지 않습니다. 결과는 장수 비교·경향 파악용으로 보세요.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+// ENGINE START
+const TYPES={G:'풀',R:'불',W:'물',L:'번개',P:'초',F:'격투',D:'악',M:'강철',N:'드래곤',C:'무색'};
+const TYPE_COLOR={G:'#3e9b4f',R:'#e0533a',W:'#3a8fd6',L:'#e8b80e',P:'#9b59b6',F:'#b5652b',D:'#36414f',M:'#8a96a3',N:'#b08d2a',C:'#b9b9b0'};
+const ENERGY_NAMES={G:'기본 풀 에너지',R:'기본 불 에너지',W:'기본 물 에너지',L:'기본 번개 에너지',P:'기본 초 에너지',F:'기본 격투 에너지',D:'기본 악 에너지',M:'기본 강철 에너지'};
+const LIB={
+  '파이리':{kind:'pokemon',stage:0,hp:70,type:'R',weak:'W',retreat:1,atk:{cost:1,dmg:10}},
+  '리자드':{kind:'pokemon',stage:1,from:'파이리',hp:90,type:'R',weak:'W',retreat:2,atk:{cost:2,dmg:50}},
+  '리자몽 ex':{kind:'pokemon',stage:2,from:'리자드',hp:330,type:'D',weak:'G',retreat:2,prize:2,atk:{cost:2,dmg:180,perPrize:30},ability:{type:'energy_on_evolve',n:3,etype:'R'}},
+  '구구':{kind:'pokemon',stage:0,hp:60,type:'C',weak:'L',retreat:1,atk:{cost:1,dmg:10}},
+  '피죤':{kind:'pokemon',stage:1,from:'구구',hp:80,type:'C',weak:'L',retreat:1,atk:{cost:2,dmg:30}},
+  '피죤투 ex':{kind:'pokemon',stage:2,from:'피죤',hp:280,type:'C',weak:'L',retreat:0,prize:2,atk:{cost:3,dmg:120},ability:{type:'tutor',n:1}},
+  '드라꼰':{kind:'pokemon',stage:0,hp:70,type:'N',weak:'',retreat:1,atk:{cost:1,dmg:10}},
+  '드래런치':{kind:'pokemon',stage:1,from:'드라꼰',hp:90,type:'N',weak:'',retreat:1,atk:{cost:2,dmg:70},ability:{type:'draw',n:1}},
+  '드래펄트 ex':{kind:'pokemon',stage:2,from:'드래런치',hp:320,type:'N',weak:'',retreat:1,prize:2,atk:{cost:2,dmg:200}},
+  '미라이돈 ex':{kind:'pokemon',stage:0,hp:220,type:'L',weak:'F',retreat:1,prize:2,atk:{cost:3,dmg:220},ability:{type:'bench_basics',n:2,etype:'L'}},
+  '무쇠손 ex':{kind:'pokemon',stage:0,hp:230,type:'L',weak:'F',retreat:4,prize:2,atk:{cost:3,dmg:160}},
+  '라이코 V':{kind:'pokemon',stage:0,hp:200,type:'L',weak:'F',retreat:1,prize:2,atk:{cost:2,dmg:120}},
+  '뮤 ex':{kind:'pokemon',stage:0,hp:180,type:'P',weak:'D',retreat:0,prize:2,ability:{type:'draw_until',n:3}},
+  '비버니':{kind:'pokemon',stage:0,hp:60,type:'C',weak:'F',retreat:1,atk:{cost:1,dmg:20}},
+  '비버통':{kind:'pokemon',stage:1,from:'비버니',hp:120,type:'C',weak:'F',retreat:2,atk:{cost:3,dmg:60},ability:{type:'draw_until',n:5}},
+  '마나피':{kind:'pokemon',stage:0,hp:70,type:'W',weak:'L',retreat:1},
+  '하이퍼볼':{kind:'item',eff:'search_pokemon',n:1,cost:2},
+  '네스트볼':{kind:'item',eff:'search_basic_bench',n:1},
+  '친구친구포핀':{kind:'item',eff:'search_basic_bench',n:2,hpMax:70},
+  '이상한사탕':{kind:'item',eff:'rare_candy'},
+  '포켓몬 교체':{kind:'item',eff:'switch'},
+  '일렉트릭제너레이터':{kind:'item',eff:'energy_accel',n:2,etype:'L'},
+  '대지의 그릇':{kind:'item',eff:'search_energy',n:2,cost:1},
+  '프라임캐처':{kind:'item',eff:'boss',ace:true},
+  '굉장한낚싯대':{kind:'item',eff:'none'},
+  '밤의 들것':{kind:'item',eff:'none'},
+  '로스트스위퍼':{kind:'item',eff:'none'},
+  '카운터캐처':{kind:'item',eff:'none'},
+  '숲의 봉인석':{kind:'tool',eff:'none'},
+  '박사의 연구':{kind:'supporter',eff:'discard_draw',n:7},
+  '모란':{kind:'supporter',eff:'iono'},
+  '심판':{kind:'supporter',eff:'judge',n:4},
+  '페퍼':{kind:'supporter',eff:'search_item',n:1},
+  '보스의 지령':{kind:'supporter',eff:'boss'},
+};
+for(const t in ENERGY_NAMES) LIB[ENERGY_NAMES[t]]={kind:'energy',etype:t};
+const ALIAS={
+  'Charmander':'파이리',
+  'Charmeleon':'리자드',
+  'Charizard ex':'리자몽 ex',
+  'Pidgey':'구구',
+  'Pidgeotto':'피죤',
+  'Pidgeot ex':'피죤투 ex',
+  'Dreepy':'드라꼰',
+  'Drakloak':'드래런치',
+  'Dragapult ex':'드래펄트 ex',
+  'Miraidon ex':'미라이돈 ex',
+  'Iron Hands ex':'무쇠손 ex',
+  'Raikou V':'라이코 V',
+  'Mew ex':'뮤 ex',
+  'Bidoof':'비버니',
+  'Bibarel':'비버통',
+  'Manaphy':'마나피',
+  'Ultra Ball':'하이퍼볼',
+  'Nest Ball':'네스트볼',
+  'Buddy-Buddy Poffin':'친구친구포핀',
+  'Rare Candy':'이상한사탕',
+  'Switch':'포켓몬 교체',
+  'Electric Generator':'일렉트릭제너레이터',
+  'Earthen Vessel':'대지의 그릇',
+  'Prime Catcher':'프라임캐처',
+  'Super Rod':'굉장한낚싯대',
+  'Night Stretcher':'밤의 들것',
+  'Lost Vacuum':'로스트스위퍼',
+  'Counter Catcher':'카운터캐처',
+  'Forest Seal Stone':'숲의 봉인석',
+  "Professor's Research":'박사의 연구',
+  'Iono':'모란',
+  'Judge':'심판',
+  'Arven':'페퍼',
+  "Boss's Orders":'보스의 지령'};
+for(const t in ENERGY_NAMES){const en={G:'Grass',R:'Fire',W:'Water',L:'Lightning',P:'Psychic',F:'Fighting',D:'Darkness',M:'Metal'}[t];ALIAS[en+' Energy']=ENERGY_NAMES[t];ALIAS['Basic '+en+' Energy']=ENERGY_NAMES[t];ALIAS['Basic {'+t+'} Energy']=ENERGY_NAMES[t];ALIAS[ENERGY_NAMES[t].replace('기본 ','')]=ENERGY_NAMES[t];}
+const SYM={G:'G',R:'R',W:'W',L:'L',P:'P',F:'F',D:'D',M:'M'};
+
+function guessDef(name){
+  if(/energy$/i.test(name)||/에너지$/.test(name)) return {kind:'energy',etype:'C',special:true,unknown:true};
+  if(/\s(ex|V|VSTAR|VMAX)$/i.test(name)) return {kind:'pokemon',stage:0,hp:200,type:'C',weak:'',retreat:2,prize:2,atk:{cost:3,dmg:150},unknown:true};
+  return {kind:'item',eff:'none',unknown:true};
+}
+function defOf(deck,name){return (deck.defs&&deck.defs[name])||LIB[name]||guessDef(name);}
+
+function rng(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function shuffle(a,r){for(let i=a.length-1;i>0;i--){const j=(r()*(i+1))|0;const x=a[i];a[i]=a[j];a[j]=x;}return a;}
+
+function compile(deck){
+  const cards=[],pool={},count={};
+  for(const e of deck.cards){if(e.count<=0)continue;const d=defOf(deck,e.name);pool[e.name]=d;count[e.name]=(count[e.name]||0)+e.count;for(let i=0;i<e.count;i++)cards.push({name:e.name,d});}
+  const defn=n=>pool[n]||defOf(deck,n);
+  const evos={};
+  for(const n in pool){const d=pool[n];if(d.kind==='pokemon'&&d.stage>0&&d.from)(evos[d.from]=evos[d.from]||[]).push(n);}
+  const pot={};
+  const potOf=(n,depth)=>{if(pot[n])return pot[n];const d=defn(n);let best=d&&d.atk&&d.atk.dmg>0?{cost:d.atk.cost||0,dmg:d.atk.dmg}:{cost:0,dmg:0};
+    if(depth<3)for(const e of evos[n]||[]){const p=potOf(e,depth+1);if(p.dmg>best.dmg)best=p;}return pot[n]=best;};
+  for(const n in pool)if(pool[n].kind==='pokemon')potOf(n,0);
+  const rootOf=n=>{let cur=n,d=defn(n),k=0;while(d&&d.stage>0&&d.from&&k<3){cur=d.from;d=defn(cur);k++;}return cur;};
+  const lineAbility=n=>{if(pool[n]&&pool[n].ability)return true;return (evos[n]||[]).some(lineAbility);};
+  let candy=null,mainEnergy=null,me=0;
+  for(const n in pool){if(pool[n].eff==='rare_candy'&&!candy)candy=n;if(pool[n].kind==='energy'&&count[n]>me){me=count[n];mainEnergy=n;}}
+  const roots=Object.keys(pool).filter(n=>pool[n].kind==='pokemon'&&!(pool[n].stage>0))
+    .sort((a,b)=>(pot[b].dmg+(lineAbility(b)?50:0))-(pot[a].dmg+(lineAbility(a)?50:0)));
+  let maxDmg=0;for(const n in pot)maxDmg=Math.max(maxDmg,pot[n].dmg);
+  return {cards,pool,count,evos,pot,defn,rootOf,candy,mainEnergy,roots,maxDmg};
+}
+
+let SLOTID=0;
+const isPoke=c=>c.d.kind==='pokemon';
+const isBasic=c=>c.d.kind==='pokemon'&&!(c.d.stage>0);
+const isEnergy=c=>c.d.kind==='energy';
+function take(arr,c){const i=arr.indexOf(c);if(i>=0)arr.splice(i,1);return c;}
+function slots(p){return p.active?[p.active,...p.bench]:p.bench.slice();}
+function mkSlot(c,t){return {card:c,stack:[c],energy:[],dmg:0,inT:t,evT:-1,id:++SLOTID};}
+function drawN(p,n){for(let i=0;i<n;i++){if(!p.deck.length)return false;p.hand.push(p.deck.shift());}return true;}
+function log(p,msg){if(p.L)p.L.push('['+p.label+'] '+msg);}
+function atkOf(s){const a=s.card.d.atk;return a&&a.dmg>0?a:null;}
+function canAtk(s){const a=atkOf(s);return !!a&&s.energy.length>=(a.cost||0);}
+function dmgOf(s,o,target){const a=atkOf(s);if(!a)return 0;let d=a.dmg+(a.perPrize||0)*(o?o.taken:0);if(target&&target.card.d.weak&&target.card.d.weak===s.card.d.type)d*=2;return d;}
+function hpLeft(s){return (s.card.d.hp||0)-s.dmg;}
+function potCost(p,s){const x=p.C.pot[s.card.name];return x?x.cost:0;}
+function potDmg(p,s){const x=p.C.pot[s.card.name];return x?x.dmg:0;}
+function prizeOf(s){return s.card.d.prize||1;}
+
+function mkPlayer(C,r,label){return {C,r,label,deck:shuffle(C.cards.map(c=>({name:c.name,d:c.d})),r),hand:[],prizes:[],discard:[],active:null,bench:[],taken:0,mull:0,turn:0,sup:false,eDone:false,retreated:false,used:new Set(),L:null};}
+
+function activeScore(p,c){const d=c.d;return -(d.prize||1)*3-(d.retreat||0)+(atkOf({card:c})&&!p.C.evos[c.name]?2:0)-(d.ability?3:0);}
+function setup(p){
+  for(let k=0;k<40;k++){p.hand=p.deck.splice(0,7);if(p.hand.some(isBasic))break;p.mull++;p.deck.push(...p.hand);p.hand=[];shuffle(p.deck,p.r);}
+  if(!p.hand.some(isBasic))return false;
+  p.opening=p.hand.map(c=>c.name);
+  const basics=p.hand.filter(isBasic).sort((a,b)=>activeScore(p,b)-activeScore(p,a));
+  p.active=mkSlot(take(p.hand,basics[0]),0);
+  for(const c of p.hand.filter(isBasic)){if(p.bench.length>=5)break;if(inPlayRoot(p,c.name)<desired(p.C,c.name))p.bench.push(mkSlot(take(p.hand,c),0));}
+  p.prizes=p.deck.splice(0,6);
+  return true;
+}
+function desired(C,n){const d=C.pool[n];const cnt=C.count[n]||0;if(!d)return 0;let w;if(C.evos[n]&&C.evos[n].length)w=3;else if(d.atk&&d.atk.dmg>0)w=2;else w=1;return Math.min(w,cnt);}
+function inPlayRoot(p,n){let k=0;for(const s of slots(p))if(p.C.rootOf(s.card.name)===n)k++;return k;}
+
+function energyNeed(p){const ss=slots(p).sort((a,b)=>potDmg(p,b)-potDmg(p,a)).slice(0,2);return ss.reduce((t,s)=>t+Math.max(0,potCost(p,s)-s.energy.length),0);}
+function wants(p){
+  const C=p.C,W=[],claims={};
+  for(const c of p.hand)claims[c.name]=(claims[c.name]||0)+1;
+  const add=n=>{if(!n||!C.pool[n])return;if(claims[n]>0){claims[n]--;return;}if(!W.includes(n))W.push(n);};
+  const bestEvo=n=>{const e=C.evos[n];if(!e||!e.length)return null;return e.slice().sort((a,b)=>C.pot[b].dmg-C.pot[a].dmg)[0];};
+  const ss=slots(p).sort((a,b)=>potDmg(p,b)-potDmg(p,a));
+  for(const s of ss){const e1=bestEvo(s.card.name);if(!e1)continue;const e2=bestEvo(e1);if(e2){add(e2);if(C.candy)add(C.candy);add(e1);}else add(e1);}
+  let space=5-p.bench.length+(p.active?0:1);
+  for(const n of C.roots){let need=desired(C,n)-inPlayRoot(p,n)-(claims[n]||0);while(need>0&&space>0){add(n);need--;space--;}}
+  const handE=p.hand.filter(isEnergy).length;
+  if(energyNeed(p)>handE&&C.mainEnergy)W.push(C.mainEnergy);
+  return W;
+}
+function keepScore(p,c,W,eShort){const i=W.indexOf(c.name);if(i>=0)return 200-i;const d=c.d;
+  if(d.kind==='supporter')return 60;if(d.kind==='pokemon')return d.stage>0?70:40;if(d.kind==='energy')return eShort?80:20;if(d.kind==='item')return d.eff&&d.eff!=='none'?50:15;return 10;}
+function discardFor(p,n){const W=wants(p);const eShort=energyNeed(p)>p.hand.filter(isEnergy).length;
+  const sorted=p.hand.slice().sort((a,b)=>keepScore(p,a,W,eShort)-keepScore(p,b,W,eShort));
+  for(const c of sorted.slice(0,n)){take(p.hand,c);p.discard.push(c);}}
+function searchDeck(p,pred,W){for(const n of W){const c=p.deck.find(x=>x.name===n&&pred(x));if(c){take(p.deck,c);return c;}}return null;}
+
+function evolve(p,s,c,t,via){
+  take(p.hand,c);s.card=c;s.stack.push(c);s.evT=t;log(p,c.name+'(으)로 진화'+(via?' ('+via+')':''));
+  const ab=c.d.ability;
+  if(ab&&ab.type==='energy_on_evolve'){let k=0;
+    for(let i=0;i<(ab.n||0);i++){const e=p.deck.find(x=>isEnergy(x)&&(!ab.etype||x.d.etype===ab.etype));if(!e)break;take(p.deck,e);
+      let tgt=s;if(s.energy.length>=potCost(p,s)){const o=slots(p).filter(x=>x!==s&&x.energy.length<potCost(p,x)).sort((a,b)=>potDmg(p,b)-potDmg(p,a))[0];if(o)tgt=o;}
+      tgt.energy.push(e);k++;}
+    shuffle(p.deck,p.r);if(k)log(p,'특성으로 에너지 '+k+'장 부착');}
+}
+function evolveAll(p,t){
+  if(p.turn<=1)return false;let did=false;
+  for(const c of p.hand.slice()){if(!isPoke(c)||!(c.d.stage>0)||!p.hand.includes(c))continue;
+    const cand=slots(p).filter(s=>s.card.name===c.d.from&&s.inT<t&&s.evT<t).sort((a,b)=>b.energy.length-a.energy.length);
+    if(cand.length){evolve(p,cand[0],c,t);did=true;}}
+  return did;
+}
+function benchFromHand(p,t){let did=false;
+  for(const c of p.hand.filter(isBasic)){if(p.bench.length>=5)break;
+    if(!p.active){p.active=mkSlot(take(p.hand,c),t);did=true;continue;}
+    if(inPlayRoot(p,c.name)<desired(p.C,c.name)){p.bench.push(mkSlot(take(p.hand,c),t));log(p,c.name+' 벤치');did=true;}}
+  return did;
+}
+function useAbilities(p,o,t){let did=false;
+  for(const s of slots(p)){const ab=s.card.d.ability;if(!ab)continue;
+    const key=ab.type==='tutor'?'tutor:'+s.card.name:s.id+':'+s.card.name;if(p.used.has(key))continue;
+    if(ab.type==='tutor'){const W=wants(p);let x=searchDeck(p,()=>true,W);
+      if(!x&&!p.sup&&!p.hand.some(c=>c.d.kind==='supporter'))x=p.deck.find(c=>c.d.kind==='supporter'&&c.d.eff&&c.d.eff!=='boss'&&c.d.eff!=='none')||null;
+      if(x){take(p.deck,x);p.hand.push(x);shuffle(p.deck,p.r);p.used.add(key);log(p,s.card.name+' 특성: '+x.name+' 서치');did=true;}}
+    else if(ab.type==='draw'){drawN(p,ab.n||1);p.used.add(key);did=true;}
+    else if(ab.type==='draw_until'){if(p.hand.length<(ab.n||0)){drawN(p,ab.n-p.hand.length);p.used.add(key);did=true;}}
+    else if(ab.type==='bench_basics'){if(p.bench.length>=5)continue;let k=0;
+      for(let i=0;i<(ab.n||1)&&p.bench.length<5;i++){const x=searchDeck(p,c=>isBasic(c)&&(!ab.etype||c.d.type===ab.etype),wants(p));if(!x)break;p.bench.push(mkSlot(x,t));k++;}
+      if(k){shuffle(p.deck,p.r);p.used.add(key);log(p,s.card.name+' 특성: 기본 포켓몬 '+k+'장 벤치');did=true;}}
+  }
+  return did;
+}
+function doCandy(p,t){
+  if(p.turn<=1)return false;
+  for(const h of p.hand){if(!isPoke(h)||h.d.stage!==2)continue;const s1=p.C.defn(h.d.from);const basic=s1&&s1.from;if(!basic)continue;
+    const s=slots(p).find(x=>x.card.name===basic&&x.inT<t&&x.evT<t);if(s){evolve(p,s,h,t,'이상한사탕');return true;}}
+  return false;
+}
+function playItems(p,o,t){let did=false;
+  for(const c of p.hand.slice()){
+    if(!p.hand.includes(c)||c.d.kind!=='item')continue;
+    const d=c.d;take(p.hand,c);let ok=false;
+    switch(d.eff){
+      case 'search_basic_bench':{let k=0;for(let i=0;i<(d.n||1)&&p.bench.length<5;i++){const x=searchDeck(p,cc=>isBasic(cc)&&(!d.hpMax||(cc.d.hp||0)<=d.hpMax),wants(p));if(!x)break;p.bench.push(mkSlot(x,t));k++;}
+        if(k){shuffle(p.deck,p.r);ok=true;}break;}
+      case 'search_pokemon':{const cost=d.cost||0;if(p.hand.length<cost)break;const x=searchDeck(p,isPoke,wants(p));if(!x)break;discardFor(p,cost);p.hand.push(x);shuffle(p.deck,p.r);ok=true;log(p,c.name+' → '+x.name);break;}
+      case 'rare_candy':ok=doCandy(p,t);break;
+      case 'energy_accel':{const tg=p.bench.filter(s=>s.energy.length<potCost(p,s));if(!tg.length)break;
+        const top=p.deck.slice(0,5).filter(x=>isEnergy(x)&&(!d.etype||x.d.etype===d.etype)).slice(0,d.n||1);
+        for(const e of top){take(p.deck,e);const s=p.bench.filter(x=>x.energy.length<potCost(p,x)).sort((a,b)=>potDmg(p,b)-potDmg(p,a))[0]||tg[0];s.energy.push(e);}
+        shuffle(p.deck,p.r);ok=true;if(top.length)log(p,c.name+': 에너지 '+top.length+'장 부착');break;}
+      case 'search_energy':{const cost=d.cost||0;if(energyNeed(p)<=p.hand.filter(isEnergy).length||p.hand.length<cost)break;
+        discardFor(p,cost);for(let i=0;i<(d.n||1);i++){const e=p.deck.find(x=>isEnergy(x)&&!x.d.special&&(!d.etype||x.d.etype===d.etype));if(!e)break;take(p.deck,e);p.hand.push(e);}
+        shuffle(p.deck,p.r);ok=true;break;}
+      case 'draw':drawN(p,d.n||1);ok=true;break;
+    }
+    if(ok){p.discard.push(c);did=true;}else p.hand.push(c);
+  }
+  return did;
+}
+function itemWanted(p,W){
+  const C=p.C;const items=p.deck.filter(c=>c.d.kind==='item');
+  const pick=eff=>items.find(c=>c.d.eff===eff);
+  if(C.candy&&W.includes(C.candy))return pick('rare_candy');
+  if(W.some(n=>C.pool[n]&&C.pool[n].kind==='pokemon'&&C.pool[n].stage>0))return pick('search_pokemon')||null;
+  if(W.some(n=>C.pool[n]&&C.pool[n].kind==='pokemon'))return pick('search_basic_bench')||pick('search_pokemon')||null;
+  if(C.mainEnergy&&W.includes(C.mainEnergy))return pick('search_energy')||null;
+  return null;
+}
+function reshuffleDraw(x,n){x.deck.push(...x.hand);x.hand=[];shuffle(x.deck,x.r);drawN(x,n);}
+function playSupporter(p,o,t,first){
+  if(p.sup||first)return false;
+  const sups=p.hand.filter(c=>c.d.kind==='supporter');if(!sups.length)return false;
+  if(o&&sups.some(c=>c.d.eff==='boss')&&bossTarget(p,o,true))return false;
+  const W=wants(p);let best=null,bs=0;
+  for(const c of sups){const d=c.d,h=p.hand.length-1;let sc=-1;
+    switch(d.eff){
+      case 'discard_draw':sc=(d.n||7)-h*0.8;break;
+      case 'shuffle_draw':sc=(d.n||6)-h;break;
+      case 'iono':sc=(6-p.taken)-h+(o?(o.hand.length-(6-o.taken))*0.5:0);break;
+      case 'judge':sc=(d.n||4)-h+(o?(o.hand.length-(d.n||4))*0.5:0);break;
+      case 'draw':sc=(d.n||2)+0.1;break;
+      case 'search_item':sc=itemWanted(p,W)?3.5:-1;break;
+    }
+    if(sc>bs){bs=sc;best=c;}}
+  if(!best)return false;
+  const d=best.d;take(p.hand,best);p.discard.push(best);p.sup=true;log(p,'서포트: '+best.name);
+  switch(d.eff){
+    case 'discard_draw':p.discard.push(...p.hand);p.hand=[];drawN(p,d.n||7);break;
+    case 'shuffle_draw':reshuffleDraw(p,d.n||6);break;
+    case 'iono':reshuffleDraw(p,6-p.taken);if(o)reshuffleDraw(o,6-o.taken);break;
+    case 'judge':reshuffleDraw(p,d.n||4);if(o)reshuffleDraw(o,d.n||4);break;
+    case 'draw':drawN(p,d.n||2);break;
+    case 'search_item':{const x=itemWanted(p,wants(p));if(x){take(p.deck,x);p.hand.push(x);shuffle(p.deck,p.r);log(p,'  → '+x.name);}break;}
+  }
+  return true;
+}
+function attachEnergy(p){
+  if(p.eDone)return;const e=p.hand.find(isEnergy);if(!e)return;
+  const a=p.active;
+  if(a&&!canAtk(a)&&p.bench.some(canAtk)&&!p.hand.some(c=>c.d.kind==='item'&&c.d.eff==='switch')&&a.energy.length<(a.card.d.retreat||0)&&a.energy.length+1>=(a.card.d.retreat||0)){
+    take(p.hand,e);a.energy.push(e);p.eDone=true;log(p,a.card.name+'에 후퇴용 에너지 부착');return;}
+  let best=null,bs=-1;
+  for(const s of slots(p)){const need=potCost(p,s)-s.energy.length;if(need<=0)continue;let sc=potDmg(p,s)+(s===p.active?20:0);
+    const a=atkOf(s);if(a&&a.dmg>=potDmg(p,s)&&s.energy.length+1>=(a.cost||0))sc+=s===p.active?500:250;if(sc>bs){bs=sc;best=s;}}
+  if(!best)return;take(p.hand,e);best.energy.push(e);p.eDone=true;log(p,best.card.name+'에 에너지 부착 ('+best.energy.length+')');
+}
+function swapIn(p,s){take(p.bench,s);if(p.active)p.bench.push(p.active);p.active=s;}
+function pivot(p,o){
+  const a=p.active;const tgt=o&&o.active;
+  const curD=a&&canAtk(a)?dmgOf(a,o,tgt):0;
+  if(tgt&&curD>=hpLeft(tgt))return;
+  let best=null,bd=curD,bko=false;
+  for(const s of p.bench){if(!canAtk(s))continue;const d=dmgOf(s,o,tgt);const ko=!!tgt&&d>=hpLeft(tgt);
+    if(d>curD&&((ko&&!bko)||(ko===bko&&d>bd))){bd=d;best=s;bko=ko;}}
+  if(!best)return;
+  const sw=p.hand.find(c=>c.d.kind==='item'&&c.d.eff==='switch');
+  if(sw){take(p.hand,sw);p.discard.push(sw);log(p,'포켓몬 교체 → '+best.card.name);swapIn(p,best);return;}
+  if(!p.retreated&&a&&a.energy.length>=(a.card.d.retreat||0)){for(let i=0;i<(a.card.d.retreat||0);i++)p.discard.push(a.energy.pop());p.retreated=true;log(p,'후퇴 → '+best.card.name);swapIn(p,best);}
+}
+function bossTarget(p,o,potential){
+  if(!o||!o.bench.length)return null;
+  let atks;
+  if(potential){const hasE=!p.eDone&&p.hand.some(isEnergy);atks=slots(p).filter(s=>{const a=atkOf(s);return a&&s.energy.length+(hasE?1:0)>=(a.cost||0);});}
+  else atks=p.active&&canAtk(p.active)?[p.active]:[];
+  if(!atks.length)return null;
+  const D=tg=>Math.max(...atks.map(s=>dmgOf(s,o,tg)));
+  const activeVal=o.active&&D(o.active)>=hpLeft(o.active)?prizeOf(o.active):0;
+  let best=null,bv=activeVal;
+  for(const s of o.bench){if(D(s)>=hpLeft(s)){const v=prizeOf(s)+(potDmg(o,s)/1000);if(v>bv){bv=v;best=s;}}}
+  return best;
+}
+function useBoss(p,o,first){
+  const tg=bossTarget(p,o,false);if(!tg)return;
+  let card=null;
+  if(!p.sup&&!first)card=p.hand.find(c=>c.d.kind==='supporter'&&c.d.eff==='boss');
+  if(card)p.sup=true;else card=p.hand.find(c=>c.d.kind==='item'&&c.d.eff==='boss');
+  if(!card)return;take(p.hand,card);p.discard.push(card);
+  take(o.bench,tg);o.bench.push(o.active);o.active=tg;log(p,card.name+': 상대 '+tg.card.name+'을(를) 배틀 필드로');
+}
+function promote(o){if(!o.bench.length)return false;
+  const s=o.bench.slice().sort((a,b)=>((canAtk(b)?1000:0)+dmgOf(b,null,null)+potDmg(o,b)/10)-((canAtk(a)?1000:0)+dmgOf(a,null,null)+potDmg(o,a)/10))[0];
+  take(o.bench,s);o.active=s;log(o,s.card.name+' 배틀 필드로');return true;}
+function attack(p,o){
+  const a=p.active;if(!a||!canAtk(a))return null;
+  if(!o)return {dmg:dmgOf(a,null,null)};
+  const tg=o.active;const d=dmgOf(a,o,tg);tg.dmg+=d;
+  log(p,a.card.name+' 공격 → '+tg.card.name+' '+d+' 데미지');
+  if(hpLeft(tg)<=0){
+    o.discard.push(...tg.stack,...tg.energy);o.active=null;
+    const n=Math.min(prizeOf(tg),p.prizes.length);for(let i=0;i<n;i++)p.hand.push(p.prizes.pop());p.taken+=n;
+    log(p,'!KO '+tg.card.name+' — 프라이즈 '+n+'장 (누적 '+p.taken+')');
+    if(p.prizes.length===0)return {win:p,reason:'prize'};
+    if(!promote(o))return {win:p,reason:'wipe'};
+  }
+  return {dmg:d};
+}
+function turn(p,o,t,first){
+  p.turn++;p.sup=false;p.eDone=false;p.retreated=false;p.used=new Set();
+  if(p.L)p.L.push('# '+t+'턴 · '+p.label+' (손패 '+p.hand.length+', 덱 '+p.deck.length+')');
+  if(!drawN(p,1))return {win:o,reason:'deck'};
+  for(let k=0;k<10;k++){
+    let prog=benchFromHand(p,t);
+    prog=useAbilities(p,o,t)||prog;
+    prog=playItems(p,o,t)||prog;
+    prog=evolveAll(p,t)||prog;
+    if(!prog){if(playSupporter(p,o,t,first))continue;break;}
+  }
+  attachEnergy(p);
+  pivot(p,o);
+  if(first)return null;
+  if(o)useBoss(p,o,first);
+  return attack(p,o);
+}
+
+function goldfish(C,seed,maxT,thr,goFirst){
+  const r=rng(seed);const p=mkPlayer(C,r,'나');
+  if(!setup(p))return {ready:0,mull:p.mull,fail:true};
+  const first=goFirst===null?r()<0.5:goFirst;let ready=0;
+  for(let k=1;k<=maxT;k++){const t=first?2*k-1:2*k;const fz=first&&k===1;const res=turn(p,null,t,fz);
+    if(res&&res.win!==undefined)break;
+    if(!fz&&p.active&&canAtk(p.active)&&dmgOf(p.active,null,null)>=thr){ready=k;break;}}
+  return {ready,mull:p.mull,first,opening:p.opening,prizes:p.prizes.map(c=>c.name)};
+}
+function goldfishStats(C,N,seed,thr,goFirst,maxT){
+  maxT=maxT||6;const dist=new Array(maxT+1).fill(0);let mull=0,mullGames=0;const open={},prized={};
+  for(let i=0;i<N;i++){const g=goldfish(C,(seed+i*7919)>>>0,maxT,thr,goFirst);dist[g.ready]++;mull+=g.mull;if(g.mull>0)mullGames++;
+    if(g.opening){const seen=new Set(g.opening);for(const n of seen)open[n]=(open[n]||0)+1;const pc={};for(const n of g.prizes)pc[n]=(pc[n]||0)+1;for(const n in pc)if(pc[n]>=C.count[n])prized[n]=(prized[n]||0)+1;}}
+  const by=k=>{let s=0;for(let j=1;j<=k;j++)s+=dist[j];return s/N;};
+  let sum=0,cnt=0;for(let j=1;j<=maxT;j++){sum+=j*dist[j];cnt+=dist[j];}
+  return {N,dist,by,avg:cnt?sum/cnt:NaN,mullRate:mullGames/N,mullAvg:mull/N,open,prized,maxT};
+}
+function battle(CA,CB,seed,withLog){
+  const r=rng(seed);const A=mkPlayer(CA,r,'내 덱'),B=mkPlayer(CB,r,'상대');
+  A.id='A';B.id='B';
+  if(withLog){A.L=B.L=[];}
+  const okA=setup(A),okB=setup(B);
+  if(!okA&&!okB)return {winner:null,reason:'draw',turns:0,firstA:true,log:A.L};
+  if(!okA)return {winner:'B',reason:'wipe',turns:0,firstA:true,log:A.L};
+  if(!okB)return {winner:'A',reason:'wipe',turns:0,firstA:true,log:A.L};
+  drawN(A,Math.min(B.mull,6));drawN(B,Math.min(A.mull,6));
+  const firstA=r()<0.5;let p=firstA?A:B,o=firstA?B:A;
+  if(A.L)A.L.push('선공: '+p.label+' · 배틀 포켓몬 '+A.active.card.name+' vs '+B.active.card.name);
+  for(let t=1;t<=120;t++){
+    const res=turn(p,o,t,t===1);
+    if(res&&res.win){if(A.L)A.L.push('=> '+res.win.label+' 승리 ('+({prize:'프라이즈 6장',wipe:'상대 포켓몬 전멸',deck:'상대 덱 아웃'})[res.reason]+')');
+      return {winner:res.win.id,reason:res.reason,turns:t,firstA,log:A.L};}
+    const x=p;p=o;o=x;
+  }
+  return {winner:null,reason:'draw',turns:120,firstA,log:A.L};
+}
+function battleStats(CA,CB,N,seed){
+  const s={N,winA:0,winB:0,draw:0,firstA:0,firstAwin:0,secondA:0,secondAwin:0,turns:0,reasons:{A:{},B:{}}};
+  for(let i=0;i<N;i++){const g=battle(CA,CB,(seed+i*104729)>>>0,false);s.turns+=g.turns;
+    if(g.firstA){s.firstA++;if(g.winner==='A')s.firstAwin++;}else{s.secondA++;if(g.winner==='A')s.secondAwin++;}
+    if(g.winner==='A')s.winA++;else if(g.winner==='B')s.winB++;else s.draw++;
+    if(g.winner)s.reasons[g.winner][g.reason]=(s.reasons[g.winner][g.reason]||0)+1;}
+  return s;
+}
+// ENGINE END
+</script>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct=x=>(x*100).toFixed(1)+'%';
+const store={get(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+
+function sampleA(){return {name:'리자몽 ex (예시)',defs:{},cards:[
+  ['파이리',4],['리자드',2],['리자몽 ex',3],['구구',2],['피죤',1],['피죤투 ex',2],['비버니',1],['비버통',1],['뮤 ex',1],
+  ['이상한사탕',4],['하이퍼볼',4],['네스트볼',3],['친구친구포핀',2],['대지의 그릇',2],['포켓몬 교체',2],['굉장한낚싯대',2],['로스트스위퍼',1],['카운터캐처',1],['밤의 들것',1],['프라임캐처',1],
+  ['페퍼',4],['모란',4],['박사의 연구',2],['보스의 지령',3],['기본 불 에너지',7]].map(([name,count])=>({name,count}))};}
+function sampleB(){return {name:'미라이돈 ex (예시)',defs:{},cards:[
+  ['미라이돈 ex',4],['무쇠손 ex',3],['라이코 V',2],['뮤 ex',1],['마나피',1],
+  ['일렉트릭제너레이터',4],['네스트볼',4],['하이퍼볼',4],['포켓몬 교체',3],['굉장한낚싯대',1],['카운터캐처',1],['밤의 들것',1],['프라임캐처',1],
+  ['박사의 연구',4],['모란',3],['보스의 지령',3],['페퍼',2],['심판',2],['기본 번개 에너지',16]].map(([name,count])=>({name,count}))};}
+
+let S=store.get('ptcg-deck-lab-ko-v1')||{decks:{A:sampleA(),B:sampleB()},cur:'A',tab:'gold'};
+let openName=null;
+const save=()=>store.set('ptcg-deck-lab-ko-v1',S);
+const D=()=>S.decks[S.cur];
+
+const KIND_KO={pokemon:'포켓몬',item:'아이템',supporter:'서포트',tool:'포켓몬의 도구',stadium:'스타디움',energy:'에너지'};
+const EFF_KO={none:'효과 없음 (시뮬레이션에서 무시)',search_basic_bench:'덱에서 기본 포켓몬 n장 벤치로',search_pokemon:'포켓몬 1장 서치 (패 n장 버림 = 코스트)',
+  rare_candy:'이상한사탕 (기본 → 2진화)',switch:'배틀 포켓몬 교체',energy_accel:'덱 위 5장에서 에너지 n장 벤치에 부착',search_energy:'기본 에너지 n장 서치 (코스트만큼 버림)',
+  draw:'n장 드로우',boss:'상대 벤치 포켓몬을 배틀 필드로',discard_draw:'패를 버리고 n장 드로우',shuffle_draw:'패를 덱에 섞고 n장 드로우',
+  iono:'서로 패를 섞고 남은 프라이즈 수만큼 드로우',judge:'서로 패를 섞고 n장 드로우',search_item:'덱에서 아이템 1장 서치'};
+const AB_KO={'':'없음',tutor:'매 턴 원하는 카드 1장 서치',draw:'매 턴 n장 드로우',draw_until:'패가 n장이 되도록 드로우',bench_basics:'기본 포켓몬 n장 벤치로 (타입 지정 가능)',energy_on_evolve:'진화할 때 덱에서 에너지 n장 부착'};
+
+function kindGroup(d){return d.kind==='pokemon'?0:d.kind==='energy'?2:1;}
+function isBasicEnergy(d){return d.kind==='energy'&&!d.special;}
+function validate(deck){
+  const out=[];let total=0,basics=0,ace=0,unk=0;
+  for(const e of deck.cards){const d=defOf(deck,e.name);total+=e.count;if(d.kind==='pokemon'&&!(d.stage>0))basics+=e.count;if(d.ace)ace+=e.count;if(d.unknown&&e.count>0)unk++;
+    if(e.count>4&&!isBasicEnergy(d))out.push(['bad',e.name+' '+e.count+'장 (최대 4장)']);
+    if(d.kind==='pokemon'&&d.stage>0&&d.from&&!deck.cards.some(x=>x.name===d.from&&x.count>0)&&!(d.stage===2&&deck.cards.some(x=>defOf(deck,x.name).eff==='rare_candy'&&x.count>0)))out.push(['warn',e.name+': 진화 전 '+d.from+' 없음']);}
+  if(total!==60)out.unshift(['bad','총 '+total+'장 (60장 필요)']);
+  if(!basics)out.push(['bad','기본 포켓몬 없음']);
+  if(ace>1)out.push(['bad','ACE SPEC '+ace+'장 (최대 1장)']);
+  if(unk)out.push(['warn','미등록 카드 '+unk+'종']);
+  if(!out.length)out.push(['ok','대회 규칙 통과']);
+  return {total,out};
+}
+
+function sortedCards(deck){
+  const C=compile(deck);
+  const subRank=d=>({supporter:0,item:1,tool:2,stadium:3})[d.kind]??4;
+  return deck.cards.map((e,i)=>({e,i,d:defOf(deck,e.name)})).sort((a,b)=>{
+    const ga=kindGroup(a.d),gb=kindGroup(b.d);if(ga!==gb)return ga-gb;
+    if(ga===0){const ra=C.rootOf(a.e.name),rb=C.rootOf(b.e.name);if(ra!==rb)return ra<rb?-1:1;return (a.d.stage||0)-(b.d.stage||0);}
+    if(ga===1){const s=subRank(a.d)-subRank(b.d);if(s)return s;}
+    return b.e.count-a.e.count;});
+}
+function renderDeck(){
+  const deck=D();
+  $('#segA').setAttribute('aria-pressed',S.cur==='A');$('#segB').setAttribute('aria-pressed',S.cur==='B');
+  $('#deckName').value=deck.name;
+  const v=validate(deck);
+  const badge=$('#countBadge');badge.textContent=v.total+'/60';badge.classList.toggle('off',v.total!==60);
+  $('#valid').innerHTML=v.out.map(([k,t])=>'<span class="chip '+k+'">'+esc(t)+'</span>').join('');
+  const groups=[['포켓몬',[]],['트레이너스',[]],['에너지',[]]];
+  for(const x of sortedCards(deck))groups[kindGroup(x.d)][1].push(x);
+  let h='';
+  for(const [label,list] of groups){if(!list.length)continue;const n=list.reduce((s,x)=>s+x.e.count,0);
+    h+='<div class="group"><h3>'+label+'<span>'+n+'</span></h3><div class="rows">';
+    for(const {e,d} of list){
+      const color=d.kind==='pokemon'?TYPE_COLOR[d.type]||TYPE_COLOR.C:d.kind==='energy'?TYPE_COLOR[d.etype]||TYPE_COLOR.C:null;
+      let tags='';
+      if(d.kind==='pokemon'){tags+='<span class="tag">'+(d.stage?d.stage+'진화':'기본')+'</span>';if((d.prize||1)>1)tags+='<span class="tag ex">2P</span>';}
+      else if(d.kind!=='energy')tags+='<span class="tag">'+KIND_KO[d.kind]+'</span>';
+      if(d.ace)tags+='<span class="tag ace">ACE</span>';
+      if(d.unknown)tags+='<span class="tag unk">미등록</span>';
+      const nm=esc(e.name);
+      h+='<div class="row"><span class="stepper"><button type="button" data-act="dec" data-n="'+nm+'" aria-label="'+nm+' 1장 빼기">−</button><b>'+e.count+'</b><button type="button" data-act="inc" data-n="'+nm+'" aria-label="'+nm+' 1장 넣기">+</button></span>'+
+        '<button type="button" class="cname" data-act="open" data-n="'+nm+'" aria-expanded="'+(openName===e.name)+'">'+(color?'<span class="dot" style="background:'+color+'"></span>':'')+'<span class="n">'+nm+'</span>'+tags+'</button>'+
+        '<span class="rtools"><button type="button" class="icon-btn" data-act="lock" data-n="'+nm+'" aria-pressed="'+!!e.lock+'" title="최적화에서 장수 고정">🔒</button><button type="button" class="icon-btn" data-act="del" data-n="'+nm+'" title="덱에서 제거" aria-label="'+nm+' 제거">✕</button></span>';
+      if(openName===e.name)h+=editorHTML(e.name,d);
+      h+='</div>';}
+    h+='</div></div>';}
+  $('#deckList').innerHTML=h||'<div class="empty">카드가 없습니다. 아래에서 추가하거나 덱 리스트를 붙여 넣으세요.</div>';
+  $('#goldDeckLabel').textContent=S.decks.A.name;
+}
+function sel(f,val,opts){return '<select data-f="'+f+'">'+Object.entries(opts).map(([k,l])=>'<option value="'+esc(k)+'"'+(String(val??'')===k?' selected':'')+'>'+esc(l)+'</option>').join('')+'</select>';}
+function num(f,val){return '<input type="number" data-f="'+f+'" value="'+(val??'')+'">';}
+function editorHTML(name,d){
+  const types=Object.fromEntries(Object.entries(TYPES).map(([k,v])=>[k,v]));
+  const typesOpt=Object.assign({'':'없음'},types);
+  let h='<div class="editor" data-ed="'+esc(name)+'">';
+  h+='<label>종류'+sel('kind',d.kind,KIND_KO)+'</label>';
+  if(d.kind==='pokemon'){
+    h+='<label>단계'+sel('stage',d.stage||0,{0:'기본',1:'1진화',2:'2진화'})+'</label>';
+    if(d.stage>0)h+='<label>진화 전<input type="text" data-f="from" value="'+esc(d.from||'')+'"></label>';
+    h+='<label>HP'+num('hp',d.hp)+'</label><label>타입'+sel('type',d.type,types)+'</label><label>약점'+sel('weak',d.weak||'',typesOpt)+'</label>';
+    h+='<label>후퇴 에너지'+num('retreat',d.retreat||0)+'</label><label>기절 시 프라이즈'+sel('prize',d.prize||1,{1:'1장',2:'2장 (ex·V)',3:'3장'})+'</label>';
+    h+='<label>기술 에너지'+num('atk.cost',d.atk?d.atk.cost:'')+'</label><label>기술 데미지'+num('atk.dmg',d.atk?d.atk.dmg:'')+'</label><label>상대 프라이즈 1장당 +'+num('atk.perPrize',d.atk&&d.atk.perPrize||0)+'</label>';
+    h+='<label class="wide">특성'+sel('ability.type',d.ability?d.ability.type:'',AB_KO)+'</label>';
+    if(d.ability){h+='<label>특성 n'+num('ability.n',d.ability.n||1)+'</label>';if(d.ability.type==='bench_basics'||d.ability.type==='energy_on_evolve')h+='<label>대상 타입'+sel('ability.etype',d.ability.etype||'',typesOpt)+'</label>';}
+  }else if(d.kind==='energy'){
+    h+='<label>타입'+sel('etype',d.etype||'C',types)+'</label><label>특수 에너지'+sel('special',d.special?'1':'',{'':'아니오 (기본)','1':'예 (4장 제한)'})+'</label>';
+  }else{
+    h+='<label class="wide">효과'+sel('eff',d.eff||'none',EFF_KO)+'</label>';
+    if(['search_basic_bench','energy_accel','search_energy','draw','discard_draw','shuffle_draw','judge'].includes(d.eff))h+='<label>n'+num('n',d.n||1)+'</label>';
+    if(['search_pokemon','search_energy'].includes(d.eff))h+='<label>버리는 장수'+num('cost',d.cost||0)+'</label>';
+    if(d.eff==='search_basic_bench')h+='<label>HP 상한 (0=없음)'+num('hpMax',d.hpMax||0)+'</label>';
+    if(['energy_accel','search_energy'].includes(d.eff))h+='<label>에너지 타입'+sel('etype',d.etype||'',typesOpt)+'</label>';
+    h+='<label>ACE SPEC'+sel('ace',d.ace?'1':'',{'':'아니오','1':'예'})+'</label>';
+  }
+  h+='<div class="hint">'+(LIB[name]&&!D().defs[name]?'기본 라이브러리 값입니다. 고치면 이 덱에만 적용됩니다.':D().defs[name]?'이 덱 전용으로 수정한 값입니다. <button type="button" class="btn sm" data-act="revert" data-n="'+esc(name)+'">기본값으로</button>':'')+'</div>';
+  return h+'</div>';
+}
+function defaultFor(kind){
+  if(kind==='pokemon')return {kind,stage:0,hp:100,type:'C',weak:'',retreat:1,prize:1,atk:{cost:2,dmg:60}};
+  if(kind==='energy')return {kind,etype:'C'};
+  return {kind,eff:'none'};
+}
+function setField(name,f,raw){
+  const deck=D();let d=JSON.parse(JSON.stringify(defOf(deck,name)));delete d.unknown;
+  if(f==='kind'){d=defaultFor(raw);}
+  else{
+    const numeric=!['from','type','weak','etype','eff','ability.type','ability.etype','special','ace'].includes(f);
+    let val=numeric?(raw===''?0:Number(raw)):raw;
+    if(f==='special'||f==='ace')val=!!raw;
+    const [a,b]=f.split('.');
+    if(b){if(a==='ability'&&b==='type'&&!val){delete d.ability;}else{d[a]=d[a]||{};d[a][b]=val;if(a==='ability'&&b==='type'&&!d.ability.n)d.ability.n=1;}}
+    else d[a]=val;
+    if(f==='stage'&&val===0)delete d.from;
+    if(d.atk&&!(d.atk.dmg>0)&&f.startsWith('atk')&&!d.atk.cost)delete d.atk;
+  }
+  deck.defs[name]=d;save();renderDeck();
+}
+function addCard(raw){
+  let name=resolveName(raw.trim());if(!name)return;
+  const deck=D();const e=deck.cards.find(x=>x.name===name);
+  if(e)e.count++;else deck.cards.push({name,count:1});
+  save();renderDeck();renderCands();
+}
+function resolveName(n){if(!n)return '';if(LIB[n])return n;if(ALIAS[n])return ALIAS[n];
+  const key=x=>x.toLowerCase().replace(/[\s·・\-]/g,'');const low=key(n);
+  for(const k in LIB)if(key(k)===low)return k;
+  for(const k in ALIAS)if(key(k)===low)return ALIAS[k];
+  const m=n.match(/^basic \{?([A-Z])\}? energy$/i);if(m&&ENERGY_NAMES[m[1].toUpperCase()])return ENERGY_NAMES[m[1].toUpperCase()];
+  return n;}
+function parseList(text){
+  const out=new Map();
+  for(let line of text.split(/\r?\n/)){line=line.trim().replace(/^[-*•·]\s*/,'').replace(/\s*\[[^\]]*\]\s*$/,'');if(!line||/^(pok[eé]mon|trainer|energy|total cards|포켓몬|트레이너스|트레이너|에너지|합계|총)\s*(\(\d+\))?\s*[:：]/i.test(line))continue;
+    let m=line.match(/^(\d+)\s*(?:장|매)?\s*[x×]?\s+(.+)$/i),count,name;
+    if(m){count=+m[1];name=m[2];}
+    else{m=line.match(/^(.+?)\s+(?:[x×]\s*)?(\d+)\s*(?:장|매)?$/i);if(!m)continue;name=m[1];count=+m[2];}
+    name=name.trim().replace(/\s+[A-Z]{2,4}(-[A-Z]{2})?\s+\d+[a-z]?$/,'').replace(/\s+PR-SV\s+\d+$/,'').replace(/\s*[\[(].*?[\])]\s*$/,'').trim();
+    name=resolveName(name);out.set(name,(out.get(name)||0)+count);}
+  return [...out].map(([name,count])=>({name,count}));
+}
+
+/* ---------- Goldfish UI ---------- */
+function autoThr(C){return C.maxDmg||10;}
+function runGold(){
+  const deck=S.decks.A;const C=compile(deck);
+  const N=+$('#gN').value;const f=$('#gFirst').value;const goFirst=f==='r'?null:f==='1';
+  const thr=+$('#gThr').value||autoThr(C);
+  $('#gRun').disabled=true;$('#gOut').innerHTML='<div class="empty">'+N.toLocaleString()+'판 계산 중…</div>';
+  setTimeout(()=>{
+    const st=goldfishStats(C,N,(Math.random()*2**31)>>>0,thr,goFirst,6);
+    $('#gRun').disabled=false;renderGold(st,C,thr,deck);
+  },30);
+}
+function renderGold(st,C,thr,deck){
+  let h='<div class="kpis">'+
+    '<div class="kpi"><div class="v">'+pct(st.mullRate)+'</div><div class="l">멀리건 발생 (판당 평균 '+st.mullAvg.toFixed(2)+'회)</div></div>'+
+    '<div class="kpi hl"><div class="v">'+pct(st.by(2))+'</div><div class="l">2번째 내 턴까지 '+thr+' 데미지 공격</div></div>'+
+    '<div class="kpi"><div class="v">'+pct(st.by(3))+'</div><div class="l">3번째 내 턴까지</div></div>'+
+    '<div class="kpi"><div class="v">'+(isNaN(st.avg)?'—':st.avg.toFixed(2))+'</div><div class="l">평균 준비 턴 (6턴 내 준비된 판)</div></div></div>';
+  h+='<div><h3 style="margin-bottom:8px">첫 공격 가능 턴 분포</h3><div class="bars">';
+  const max=Math.max(...st.dist);let cum=0;
+  for(let k=1;k<=st.maxT+1;k++){const i=k<=st.maxT?k:0;const v=st.dist[i]/st.N;if(i)cum+=v;
+    h+='<div class="bar"><span>'+(i?k+'턴':'6턴 내 실패')+'</span><span class="track"><span class="fill" style="width:'+(st.dist[i]/max*100).toFixed(1)+'%"></span></span><span class="num"><b>'+pct(v)+'</b>'+(i?' · 누적 '+pct(cum):'')+'</span></div>';}
+  h+='</div><p class="muted" style="font-size:12px;margin:6px 0 0">선공 1턴은 규칙상 공격할 수 없습니다. "턴"은 내 턴 기준입니다.</p></div>';
+  const rows=deck.cards.filter(e=>e.count>0).map(e=>({e,d:defOf(deck,e.name)})).filter(x=>x.d.kind==='pokemon'||['rare_candy','search_pokemon','search_basic_bench','search_item','discard_draw','iono'].includes(x.d.eff))
+    .sort((a,b)=>(st.prized[b.e.name]||0)-(st.prized[a.e.name]||0));
+  h+='<div><h3 style="margin-bottom:6px">핵심 카드 확률</h3><div class="tbl-wrap"><table><thead><tr><th>카드</th><th class="num">장수</th><th class="num">첫 손패에 1장 이상</th><th class="num">전부 프라이즈에 갇힘</th></tr></thead><tbody>';
+  for(const {e} of rows){const pz=(st.prized[e.name]||0)/st.N;
+    h+='<tr><td>'+esc(e.name)+'</td><td class="num">'+e.count+'</td><td class="num">'+pct((st.open[e.name]||0)/st.N)+'</td><td class="num" style="color:'+(pz>0.05?'var(--bad)':'inherit')+'">'+pct(pz)+'</td></tr>';}
+  h+='</tbody></table></div></div>';
+  $('#gOut').innerHTML=h;
+}
+
+/* ---------- Optimizer ---------- */
+const DEFAULT_CANDS=['하이퍼볼','네스트볼','친구친구포핀','이상한사탕','포켓몬 교체','대지의 그릇','박사의 연구','모란','페퍼','보스의 지령','심판'];
+let candSel=null;
+function renderCands(){
+  const deck=S.decks.A;const inDeck=deck.cards.map(e=>e.name);
+  const libT=Object.keys(LIB).filter(n=>LIB[n].kind!=='pokemon'&&LIB[n].kind!=='energy'&&LIB[n].eff&&LIB[n].eff!=='none');
+  const energies=[...new Set(deck.cards.map(e=>e.name).filter(n=>defOf(deck,n).kind==='energy'))];
+  const all=[...new Set([...inDeck,...libT,...energies])];
+  if(!candSel)candSel=new Set([...inDeck,...DEFAULT_CANDS]);
+  $('#oCands').innerHTML=all.map(n=>'<label><input type="checkbox" data-cand="'+esc(n)+'"'+(candSel.has(n)?' checked':'')+'>'+esc(n)+(inDeck.includes(n)?'':' <span class="muted">(덱에 없음)</span>')+'</label>').join('');
+}
+let stopFlag=false;
+const tick=()=>new Promise(r=>setTimeout(r,0));
+function limitOf(deck,n){const d=defOf(deck,n);return isBasicEnergy(d)?60:4;}
+function objective(deckLike,seed,mode,N){
+  const C=compile(deckLike);
+  if(mode==='win'){const s=battleStats(C,compile(S.decks.B),N,seed);return (s.winA+s.draw*0.5)/s.N;}
+  const thr=+$('#gThr').value||autoThr(compile(S.decks.A));
+  return goldfishStats(C,N,seed,thr,null,mode==='g2'?2:3).by(mode==='g2'?2:3);
+}
+async function runOpt(){
+  const base=S.decks.A;const v=validate(base);
+  if(v.total!==60){$('#oOut').innerHTML='<div class="empty">덱이 '+v.total+'장입니다. 60장을 맞춘 뒤 실행하세요.</div>';return;}
+  const mode=$('#oObj').value,iters=+$('#oIt').value;
+  const N=mode==='win'?200:800,M=8,eps=mode==='win'?0.015:0.01;
+  stopFlag=false;$('#oRun').disabled=true;$('#oStop').hidden=false;
+  let cur=base.cards.map(e=>({...e}));
+  const mk=cards=>({name:base.name,defs:base.defs,cards});
+  const cands=[...candSel];
+  const logLines=[];
+  const show=(extra)=>{$('#oOut').innerHTML=(extra||'')+(logLines.length?'<div><h3 style="margin-bottom:6px">채택된 교체</h3><div class="log">'+logLines.map(esc).join('\n')+'</div></div>':'<div class="empty">아직 개선된 교체가 없습니다…</div>');};
+  show();
+  for(let it=0;it<iters&&!stopFlag;it++){
+    const seed=(Math.random()*2**31)>>>0;
+    const baseScore=objective(mk(cur),seed,mode,N);
+    let best=null;
+    for(let m=0;m<M&&!stopFlag;m++){
+      const outs=cur.filter(e=>e.count>0&&!e.lock);
+      const ins=cands.filter(n=>{const e=cur.find(x=>x.name===n);if(e&&e.lock)return false;const c=e?e.count:0;if(c>=limitOf(base,n))return false;
+        const dn=defOf(base,n);if(dn.kind!=='pokemon'&&dn.kind!=='energy'&&(!dn.eff||dn.eff==='none'))return false;
+        if(defOf(base,n).ace&&cur.some(x=>x.count>0&&defOf(base,x.name).ace&&x.name!==n))return false;return true;});
+      if(!outs.length||!ins.length)break;
+      const o=outs[(Math.random()*outs.length)|0],i=ins[(Math.random()*ins.length)|0];if(o.name===i)continue;
+      const next=cur.map(e=>({...e}));next.find(e=>e.name===o.name).count--;
+      const ex=next.find(e=>e.name===i);if(ex)ex.count++;else next.push({name:i,count:1});
+      if(!next.some(e=>e.count>0&&defOf(base,e.name).kind==='pokemon'&&!(defOf(base,e.name).stage>0)))continue;
+      const sc=objective(mk(next),seed,mode,N);
+      if(!best||sc>best.sc)best={sc,next,o:o.name,i};
+      await tick();
+    }
+    if(best&&best.sc>baseScore+eps){cur=best.next.filter(e=>e.count>0||base.cards.some(b=>b.name===e.name));
+      logLines.push((it+1)+'회차  −1 '+best.o+'  +1 '+best.i+'   '+pct(baseScore)+' → '+pct(best.sc));}
+    $('#oProg').style.width=((it+1)/iters*100)+'%';show();await tick();
+  }
+  // verify
+  show('<div class="empty">검증 중… (같은 조건으로 원본과 결과를 다시 비교)</div>');await tick();
+  const vs=(Math.random()*2**31)>>>0,VN=mode==='win'?800:4000;
+  const before=objective(base,vs,mode,VN),after=objective(mk(cur),vs,mode,VN);
+  const diff=[];
+  for(const e of cur){const b=base.cards.find(x=>x.name===e.name);const d=e.count-(b?b.count:0);if(d)diff.push([e.name,d]);}
+  for(const b of base.cards)if(!cur.some(e=>e.name===b.name)&&b.count)diff.push([b.name,-b.count]);
+  diff.sort((a,b)=>b[1]-a[1]);
+  const label={g2:'2턴 이내 준비 확률',g3:'3턴 이내 준비 확률',win:'승률 (vs '+S.decks.B.name+')'}[mode];
+  let h='<div class="kpis"><div class="kpi"><div class="v">'+pct(before)+'</div><div class="l">원래 덱 · '+esc(label)+'</div></div><div class="kpi hl"><div class="v">'+pct(after)+'</div><div class="l">최적화 결과 ('+(after>=before?'+':'')+((after-before)*100).toFixed(1)+'%p)</div></div></div>';
+  if(diff.length&&after>before){h+='<div><h3 style="margin-bottom:6px">바뀐 카드</h3><div class="diff">'+diff.map(([n,d])=>'<span class="chip '+(d>0?'plus':'minus')+'">'+(d>0?'+':'')+d+' '+esc(n)+'</span>').join('')+'</div></div>'+
+    '<div><button class="btn primary" type="button" id="oApply">이 구성을 내 덱에 적용</button></div>';
+    window.__optResult=cur;}
+  else h+='<div class="empty">검증 결과 의미 있는 개선을 찾지 못했습니다. 후보 카드를 늘리거나 반복 횟수를 올려 보세요.</div>';
+  show(h);$('#oRun').disabled=false;$('#oStop').hidden=true;
+}
+
+/* ---------- Battle UI ---------- */
+async function runBattle(){
+  const CA=compile(S.decks.A),CB=compile(S.decks.B);const N=+$('#bN').value;
+  $('#bRun').disabled=true;const seed=(Math.random()*2**31)>>>0;
+  const tot={N:0,winA:0,winB:0,draw:0,firstA:0,firstAwin:0,secondA:0,secondAwin:0,turns:0,reasons:{A:{},B:{}}};
+  const chunk=50;
+  for(let i=0;i<N;i+=chunk){const s=battleStats(CA,CB,Math.min(chunk,N-i),seed+i*977);
+    for(const k of ['N','winA','winB','draw','firstA','firstAwin','secondA','secondAwin','turns'])tot[k]+=s[k];
+    for(const w of ['A','B'])for(const r in s.reasons[w])tot.reasons[w][r]=(tot.reasons[w][r]||0)+s.reasons[w][r];
+    $('#bProg').style.width=((i+chunk)/N*100)+'%';await tick();}
+  $('#bRun').disabled=false;renderBattle(tot);
+}
+function renderBattle(s){
+  const a=s.winA/s.N,b=s.winB/s.N;const nA=esc(S.decks.A.name),nB=esc(S.decks.B.name);
+  const R={prize:'프라이즈 6장',wipe:'상대 포켓몬 전멸',deck:'상대 덱 아웃'};
+  let h='<div><div class="vs"><div class="a" style="width:'+Math.max(a*100,8)+'%">'+pct(a)+'</div><div class="b">'+pct(b)+'</div></div><div class="vs-l"><span>'+nA+'</span><span>'+(s.draw?'무승부 '+pct(s.draw/s.N)+' · ':'')+nB+'</span></div></div>';
+  h+='<div class="kpis"><div class="kpi"><div class="v">'+(s.firstA?pct(s.firstAwin/s.firstA):'—')+'</div><div class="l">내 덱 선공 시 승률</div></div><div class="kpi"><div class="v">'+(s.secondA?pct(s.secondAwin/s.secondA):'—')+'</div><div class="l">내 덱 후공 시 승률</div></div><div class="kpi"><div class="v">'+(s.turns/s.N).toFixed(1)+'</div><div class="l">평균 게임 길이 (양측 턴 합계)</div></div></div>';
+  h+='<div class="tbl-wrap"><table><thead><tr><th>승리 방식</th><th class="num">'+nA+'</th><th class="num">'+nB+'</th></tr></thead><tbody>';
+  for(const r in R)h+='<tr><td>'+R[r]+'</td><td class="num">'+(s.reasons.A[r]||0)+'</td><td class="num">'+(s.reasons.B[r]||0)+'</td></tr>';
+  h+='</tbody></table></div><p class="muted" style="margin:0;font-size:12px">'+s.N.toLocaleString()+'판 기준. 1000판이면 승률 오차는 대략 ±3%p입니다.</p>';
+  $('#bOut').innerHTML=h;
+}
+function sampleGame(){
+  const g=battle(compile(S.decks.A),compile(S.decks.B),(Math.random()*2**31)>>>0,true);
+  const lines=(g.log||[]).map(l=>l.startsWith('# ')?'<span class="t">'+esc(l.slice(2))+'</span>':l.includes('!KO')?'<span class="ko">'+esc(l.replace('!KO','기절:'))+'</span>':l.startsWith('=>')?'<b>'+esc(l)+'</b>':esc(l));
+  $('#bLog').innerHTML='<div><h3 style="margin-bottom:6px">샘플 게임 로그</h3><div class="log">'+lines.join('\n')+'</div></div>';
+}
+
+/* ---------- Wiring ---------- */
+function setTab(t){S.tab=t;save();for(const b of document.querySelectorAll('[data-tab]'))b.setAttribute('aria-selected',b.dataset.tab===t);
+  for(const p of document.querySelectorAll('[data-pane]'))p.hidden=p.dataset.pane!==t;}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.deck){S.cur=b.dataset.deck;openName=null;save();renderDeck();return;}
+  if(b.dataset.tab){setTab(b.dataset.tab);return;}
+  const act=b.dataset.act,n=b.dataset.n;if(!act)return;
+  const deck=D();const ent=deck.cards.find(x=>x.name===n);
+  if(act==='inc'&&ent)ent.count++;
+  if(act==='dec'&&ent)ent.count=Math.max(0,ent.count-1);
+  if(act==='del'){deck.cards=deck.cards.filter(x=>x.name!==n);if(openName===n)openName=null;}
+  if(act==='lock'&&ent)ent.lock=!ent.lock;
+  if(act==='open')openName=openName===n?null:n;
+  if(act==='revert'){delete deck.defs[n];}
+  save();renderDeck();if(['del','inc'].includes(act))renderCands();
+});
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(el.dataset.f){const ed=el.closest('[data-ed]');setField(ed.dataset.ed,el.dataset.f,el.value);}
+  if(el.dataset.cand){el.checked?candSel.add(el.dataset.cand):candSel.delete(el.dataset.cand);}
+});
+$('#deckName').addEventListener('input',e=>{D().name=e.target.value;save();$('#goldDeckLabel').textContent=S.decks.A.name;});
+$('#addBtn').addEventListener('click',()=>{addCard($('#addName').value);$('#addName').value='';});
+$('#addName').addEventListener('keydown',e=>{if(e.key==='Enter'){addCard(e.target.value);e.target.value='';}});
+$('#importBtn').addEventListener('click',()=>{const cards=parseList($('#ioText').value);if(!cards.length){$('#ioText').placeholder='인식된 카드가 없습니다. “파이리 4” 형식으로 한 줄에 한 카드씩 적어 주세요.';return;}
+  D().cards=cards;openName=null;save();renderDeck();candSel=null;renderCands();});
+$('#exportBtn').addEventListener('click',()=>{$('#ioText').value=sortedCards(D()).filter(x=>x.e.count>0).map(x=>x.e.count+' '+x.e.name).join('\n');});
+$('#copyBtn').addEventListener('click',()=>{const t=$('#ioText');navigator.clipboard.writeText(t.value).catch(()=>{t.focus();t.select();});});
+$('#resetBtn').addEventListener('click',e=>{const b=e.currentTarget;if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='한 번 더 누르면 두 덱 모두 초기화';setTimeout(()=>{b.dataset.confirm='';b.textContent='예시 덱으로 초기화';},3000);return;}
+  S.decks={A:sampleA(),B:sampleB()};S.cur='A';openName=null;candSel=null;save();renderDeck();renderCands();b.dataset.confirm='';b.textContent='예시 덱으로 초기화';});
+$('#gRun').addEventListener('click',runGold);
+$('#oRun').addEventListener('click',runOpt);
+$('#oStop').addEventListener('click',()=>{stopFlag=true;});
+$('#oOut').addEventListener('click',e=>{if(e.target.id==='oApply'&&window.__optResult){S.decks.A.cards=window.__optResult.map(x=>({...x}));save();if(S.cur==='A')renderDeck();e.target.disabled=true;e.target.textContent='적용했습니다';}});
+$('#bRun').addEventListener('click',runBattle);
+$('#bSample').addEventListener('click',sampleGame);
+$('#libList').innerHTML=[...Object.keys(LIB),...Object.keys(ALIAS)].map(n=>'<option value="'+esc(n)+'">').join('');
+
+/* ---------- Photo scan (Claude API) ---------- */
+const SDK_URL='https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.52.0/+esm';
+const KEY_STORE='ptcg-deck-lab-apikey';
+let scanImgs=[];
+function getKey(){try{return localStorage.getItem(KEY_STORE)||'';}catch(e){return '';}}
+function scanMsg(t,cls){const el=$('#scanStatus');el.textContent=t;el.className='scan-status'+(cls?' '+cls:'');}
+function renderThumbs(){
+  $('#scanThumbs').innerHTML=scanImgs.map((x,i)=>'<figure><img src="'+x.url+'" alt="덱 사진 '+(i+1)+'"><button type="button" data-rm="'+i+'" aria-label="사진 '+(i+1)+' 빼기">✕</button></figure>').join('');
+  $('#scanRun').disabled=!scanImgs.length;
+}
+// Shrink large camera photos so each upload stays well under the API's per-image size limit.
+async function prepImage(file){
+  const bmp=await createImageBitmap(file);
+  const max=2000,sc=Math.min(1,max/Math.max(bmp.width,bmp.height));
+  const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);
+  cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);bmp.close&&bmp.close();
+  const url=cv.toDataURL('image/jpeg',0.88);
+  return {url,data:url.split(',')[1]};
+}
+const SCAN_SCHEMA={type:'object',additionalProperties:false,required:['cards','note'],properties:{
+  cards:{type:'array',items:{type:'object',additionalProperties:false,required:['name','count','uncertain'],properties:{
+    name:{type:'string'},count:{type:'integer'},uncertain:{type:'boolean'}}}},
+  note:{type:'string'}}};
+function scanPrompt(){
+  const known=[...Object.keys(LIB)].join(', ');
+  return '이 사진들은 한국판 포켓몬 카드 게임(PTCG) 덱입니다. 카드를 펼쳐 찍은 사진이거나 덱 리스트 화면 캡처일 수 있습니다.\n'+
+    '사진 전체에서 카드 종류별 이름과 장수를 읽어 주세요.\n'+
+    '- 카드 이름은 카드에 인쇄된 한국어 이름 그대로 적습니다. 포켓몬 ex/V는 "리자몽 ex"처럼 이름 뒤에 띄어 씁니다.\n'+
+    '- 기본 에너지는 "기본 불 에너지"처럼 적습니다.\n'+
+    '- 아래 목록에 있는 카드는 목록의 표기를 그대로 씁니다: '+known+'\n'+
+    '- 같은 카드가 여러 장 겹쳐 있거나 여러 사진에 걸쳐 있으면 중복 없이 합산합니다. 사진이 여러 장이면 같은 카드를 두 번 세지 않도록 주의합니다.\n'+
+    '- 이름이나 장수가 확실하지 않으면 uncertain을 true로 둡니다.\n'+
+    '- note에는 가려진 카드, 합계가 60장이 아닌 이유 등 사용자가 확인할 점을 한국어로 짧게 적습니다.';
+}
+async function runScan(){
+  const key=getKey();
+  if(!key){$('#keyBox').open=true;scanMsg('먼저 Anthropic API 키를 입력하고 저장하세요.','err');$('#apiKey').focus();return;}
+  if(!scanImgs.length)return;
+  $('#scanRun').disabled=true;scanMsg('사진 '+scanImgs.length+'장을 인식하는 중… (보통 20~60초)');
+  let Anthropic;
+  try{({default:Anthropic}=await import(SDK_URL));}
+  catch(e){scanMsg('인터넷 연결을 확인하세요. API 라이브러리를 불러오지 못했습니다.','err');$('#scanRun').disabled=false;return;}
+  const client=new Anthropic({apiKey:key,dangerouslyAllowBrowser:true});
+  try{
+    const content=[...scanImgs.map(x=>({type:'image',source:{type:'base64',media_type:'image/jpeg',data:x.data}})),{type:'text',text:scanPrompt()}];
+    const res=await client.beta.messages.create({
+      model:'claude-opus-5-5',max_tokens:16000,
+      betas:['server-side-fallback-2026-07-01'],fallbacks:'default',
+      output_config:{effort:'high',format:{type:'json_schema',schema:SCAN_SCHEMA}},
+      messages:[{role:'user',content}]});
+    if(res.stop_reason==='refusal'){scanMsg('이 사진은 인식을 거절당했습니다. 다른 사진으로 다시 시도하세요.','err');return;}
+    if(res.stop_reason==='max_tokens'){scanMsg('응답이 너무 길어 잘렸습니다. 사진을 나눠서 다시 시도하세요.','err');return;}
+    const txt=res.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const out=JSON.parse(txt);
+    const lines=out.cards.filter(c=>c.count>0).map(c=>{const n=resolveName(c.name);return n+' '+c.count+(c.uncertain?'   [확인 필요]':'');});
+    const total=out.cards.reduce((s,c)=>s+(c.count||0),0);
+    $('#ioBox').open=true;$('#ioText').value=lines.join('\n');
+    const unsure=out.cards.filter(c=>c.uncertain).length;
+    scanMsg('인식 완료: '+out.cards.length+'종 '+total+'장'+(unsure?' · 확인 필요 '+unsure+'종':'')+(out.note?' · '+out.note:'')+' — 아래 텍스트를 확인·수정한 뒤 “이 텍스트로 덱 교체”를 누르세요.',total===60&&!unsure?'ok':'');
+  }catch(e){
+    const st=e&&e.status;
+    if(st===401)scanMsg('API 키가 올바르지 않습니다. 키를 다시 확인하세요.','err');
+    else if(st===429)scanMsg('요청이 너무 많습니다. 잠시 후 다시 시도하세요.','err');
+    else if(st===400)scanMsg('요청이 거부되었습니다: '+(e.message||'')+' — 사진 수를 줄여 보세요.','err');
+    else if(st===402||st===403)scanMsg('API 계정 권한이나 크레딧을 확인하세요 ('+st+').','err');
+    else if(st>=500)scanMsg('Anthropic 서버 오류입니다. 잠시 후 다시 시도하세요.','err');
+    else if(e instanceof SyntaxError)scanMsg('결과를 해석하지 못했습니다. 다시 시도하세요.','err');
+    else scanMsg('인식에 실패했습니다: '+(e&&e.message||e),'err');
+  }finally{$('#scanRun').disabled=!scanImgs.length;}
+}
+$('#scanFile').addEventListener('change',async e=>{
+  const files=[...e.target.files];e.target.value='';if(!files.length)return;
+  scanMsg('사진 준비 중…');
+  for(const f of files){try{scanImgs.push(await prepImage(f));}catch(err){scanMsg('이 사진 형식은 열 수 없습니다: '+f.name,'err');}}
+  if(scanImgs.length>8){scanImgs=scanImgs.slice(0,8);scanMsg('한 번에 최대 8장까지 인식합니다. 앞의 8장만 남겼습니다.','err');}
+  else scanMsg('사진 '+scanImgs.length+'장 준비됨. “카드 인식”을 누르세요.');
+  renderThumbs();
+});
+$('#scanThumbs').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(!b)return;scanImgs.splice(+b.dataset.rm,1);renderThumbs();});
+$('#scanRun').addEventListener('click',runScan);
+$('#keySave').addEventListener('click',()=>{const v=$('#apiKey').value.trim();if(!v)return;try{localStorage.setItem(KEY_STORE,v);}catch(e){}$('#apiKey').value='';$('#apiKey').placeholder='저장됨 (••••'+v.slice(-4)+')';scanMsg('API 키를 저장했습니다.','ok');});
+$('#keyClear').addEventListener('click',()=>{try{localStorage.removeItem(KEY_STORE);}catch(e){}$('#apiKey').value='';$('#apiKey').placeholder='sk-ant-...';scanMsg('API 키를 지웠습니다.');});
+if(getKey())$('#apiKey').placeholder='저장됨 (••••'+getKey().slice(-4)+')';
+
+renderDeck();renderCands();setTab(S.tab||'gold');
+runGold();
+</script>
+</body>
+</html>
